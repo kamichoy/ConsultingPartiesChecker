@@ -2,9 +2,9 @@
 
 A simple tool for looking up, by county, the contacts you need for historic preservation in Indiana:
 
-- The Indiana Landmarks regional office (and staff) for that county （https://www.indianalandmarks.org/news/in-your-area/)
+- The Indiana Landmarks regional office (and staff) for that county (https://www.indianalandmarks.org/news/in-your-area/)
 - Local preservation and historical organizations (https://www.indianalandmarks.org/resources/indiana-preservation-directory/ & https://indianahistory.org/across-indiana/hometown-resources/find-who-you-need-by-county/)
-- Tribal contacts on file for that county （https://egis.hud.gov/tdat/）
+- Tribal contacts on file for that county (https://egis.hud.gov/tdat/)
 
 ## Quick start (just want to use it)
 
