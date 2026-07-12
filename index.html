@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Indiana Consulting Parties Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f2e9d8; }
+        .item + .item { border-top: 1px solid #e6d9bd; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-2xl font-bold mb-1 text-[#4a3222] font-serif">Indiana Consulting Parties Finder</h1>
+        <p class="text-sm text-[#8a7458] mb-6">Select a county to see its Indiana Landmarks regional office, local preservation organizations, and tribal contacts.</p>
+
+        <select id="countySelect" class="w-full p-3 border border-[#d3bd90] rounded-lg shadow-sm mb-6 bg-[#fffcf5] text-[#4a3222]">
+            <option value="">-- Select a County --</option>
+        </select>
+
+        <div id="resultPanel" class="hidden space-y-6">
+            <section class="bg-[#fffcf5] rounded-xl border border-[#d3bd90] shadow-sm overflow-hidden">
+                <h3 class="px-4 py-2.5 bg-[#e9dcbd] border-b border-[#d3bd90] font-semibold text-[#4a3222] text-sm font-serif">Indiana Landmarks Regional Office</h3>
+                <div id="officeContent"></div>
+            </section>
+            <section class="bg-[#fffcf5] rounded-xl border border-[#d3bd90] shadow-sm overflow-hidden">
+                <h3 class="px-4 py-2.5 bg-[#e9dcbd] border-b border-[#d3bd90] font-semibold text-[#4a3222] text-sm font-serif">Local Preservation Organization</h3>
+                <div id="orgContent"></div>
+            </section>
+            <section class="bg-[#fffcf5] rounded-xl border border-[#d3bd90] shadow-sm overflow-hidden">
+                <h3 class="px-4 py-2.5 bg-[#e9dcbd] border-b border-[#d3bd90] font-semibold text-[#4a3222] text-sm font-serif">Tribal Contacts</h3>
+                <div id="tribeContent"></div>
+            </section>
+        </div>
+
+        <div id="loadError" class="hidden bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm"></div>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        function item(innerHtml) {
+            return `<div class="item px-4 py-3 text-sm text-[#5a4a35]">${innerHtml}</div>`;
+        }
+
+        function emptyState(text) {
+            return item(`<span class="text-[#a8967a] italic">${text}</span>`);
+        }
+
+        function linkify(url, label) {
+            if (!url) return '';
+            const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+            return `<a href="${href}" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">${label || url}</a>`;
+        }
+
+        function mailtoLink(email) {
+            if (!email) return '';
+            return `<a href="mailto:${email}" class="text-[#8a5a2b] hover:underline">${email}</a>`;
+        }
+
+        const SOURCE_LABELS = { landmarks: 'Indiana Landmarks', ihs: 'Indiana Historical Society' };
+
+        function sourceBadges(sources) {
+            if (!sources || sources.length === 0) return '';
+            const badges = sources.map(s => `<span class="text-[10px] uppercase tracking-wide text-[#a8916c] border border-[#d3bd90] rounded px-1.5 py-0.5">${SOURCE_LABELS[s] || s}</span>`).join('');
+            return `<div class="flex flex-wrap gap-1 mt-2">${badges}</div>`;
+        }
+
+        function renderOffice(office) {
+            if (!office) return emptyState('No regional office information found for this county.');
+            const lines = [office.city, office.address1, office.address2, office.cityStateZip].filter(Boolean);
+            const staff = office.staff || [];
+            return item(`
+                <div class="font-semibold text-[#4a3222] mb-1">${office.office}</div>
+                ${lines.map(l => `<div>${l}</div>`).join('')}
+                ${office.phone ? `<div class="mt-1">${office.phone}</div>` : ''}
+                ${office.email ? `<div>${mailtoLink(office.email)}</div>` : ''}
+                ${staff.length ? `
+                <div class="mt-3 pt-2 border-t border-[#e6d9bd] text-xs uppercase tracking-wide text-[#a8916c] mb-1">Staff</div>
+                ${staff.map(s => `<div class="mb-1">${s.name}${s.email ? `<br>${mailtoLink(s.email)}` : ''}</div>`).join('')}
+                ` : ''}
+            `);
+        }
+
+        function renderOrgs(orgs) {
+            if (!orgs || orgs.length === 0) return emptyState('No local preservation or historical organizations found for this county.');
+            return orgs.map(org => item(`
+                <div class="font-semibold text-[#4a3222] mb-1">${org.name}</div>
+                ${org.lines.map(l => `<div>${l}</div>`).join('')}
+                ${org.email ? `<div class="mt-1">${mailtoLink(org.email)}</div>` : ''}
+                ${org.website ? `<div>${linkify(org.website)}</div>` : ''}
+                ${sourceBadges(org.sources)}
+            `)).join('');
+        }
+
+        function renderTribes(tribes) {
+            if (!tribes || tribes.length === 0) return emptyState('No tribal contacts on file for this county in the HUD Tribal Directory Assistance Tool.');
+            return tribes.map(t => item(`
+                <div class="font-semibold text-[#4a3222] mb-1">${t.name}</div>
+                ${t.contact ? `<div>${t.contact}${t.title ? `, ${t.title}` : ''}</div>` : ''}
+                ${t.address ? `<div>${t.address}</div>` : ''}
+                ${t.phone ? `<div class="mt-1">${t.phone}</div>` : ''}
+                ${t.email ? `<div>${mailtoLink(t.email)}</div>` : ''}
+                ${t.website ? `<div>${linkify(t.website)}</div>` : ''}
+            `)).join('');
+        }
+
+        function init() {
+            const errorBox = document.getElementById('loadError');
+            if (typeof CONSULTING_PARTIES_DATA === 'undefined') {
+                errorBox.classList.remove('hidden');
+                errorBox.innerText = 'data.js failed to load. Make sure data.js is in the same folder as index.html, then reload this page.';
+                return;
+            }
+
+            const select = document.getElementById('countySelect');
+            const panel = document.getElementById('resultPanel');
+
+            const slugs = Object.keys(CONSULTING_PARTIES_DATA).sort((a, b) =>
+                CONSULTING_PARTIES_DATA[a].name.localeCompare(CONSULTING_PARTIES_DATA[b].name)
+            );
+            for (const slug of slugs) {
+                const opt = document.createElement('option');
+                opt.value = slug;
+                opt.innerText = CONSULTING_PARTIES_DATA[slug].name;
+                select.appendChild(opt);
+            }
+
+            select.addEventListener('change', (e) => {
+                const slug = e.target.value;
+                if (!slug) {
+                    panel.classList.add('hidden');
+                    return;
+                }
+                const county = CONSULTING_PARTIES_DATA[slug];
+                document.getElementById('officeContent').innerHTML = renderOffice(county.office);
+                document.getElementById('orgContent').innerHTML = renderOrgs(county.orgs);
+                document.getElementById('tribeContent').innerHTML = renderTribes(county.tribes);
+                panel.classList.remove('hidden');
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
