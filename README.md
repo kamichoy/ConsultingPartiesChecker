@@ -8,17 +8,22 @@ A simple tool for looking up, by county, the contacts you need for historic pres
 
 ## Quick start (just want to use it)
 
-1. Download the whole project folder (it must include both **`index.html`** and
-   **`data.js`** — `data.js` holds all the contact data and `index.html` won't
-   work without it sitting right next to it).
-2. Double-click **`index.html`**. It opens directly in your browser — no
-   install, no server, no internet connection required (except to load the
-   Tailwind CSS styling from a CDN).
-3. Pick a county from the dropdown. The three sections below will fill in with
-   whatever is on file for that county.
+It's live at **https://consultingpartieschecker.pages.dev** — just open that
+link and pick a county from the dropdown. The three sections below will fill
+in with whatever is on file for that county.
 
-That's it — this is all you need if you just want to look things up. You can
-ignore everything below; it's only needed if you want to refresh the data.
+No install, no download needed. You can ignore everything below; it's only
+needed if you want to run it locally or refresh the data.
+
+### Running it locally instead
+
+1. Download the whole project folder (it must include both
+   **`public/index.html`** and **`public/data.js`** — `data.js` holds all the
+   contact data and `index.html` won't work without it sitting right next to
+   it).
+2. Double-click **`public/index.html`**. It opens directly in your browser —
+   no install, no server, no internet connection required (except to load the
+   Tailwind CSS styling from a CDN).
 
 ## Updating the data (optional)
 
@@ -37,16 +42,20 @@ can go stale. To rebuild it:
    ```
    This re-scrapes all 92 counties and overwrites `data.js`. It takes a few
    minutes and prints progress per county.
-4. Refresh `index.html` in your browser to see the updated data.
+4. Refresh `public/index.html` in your browser to see the updated data.
 
-`data.js` is generated — don't hand-edit it, since the next rebuild will
-overwrite your changes.
+`public/data.js` is generated — don't hand-edit it, since the next rebuild
+will overwrite your changes.
+
+If you've pushed the rebuilt `public/data.js` to GitHub, the live site at
+https://consultingpartieschecker.pages.dev picks it up automatically (it's
+deployed from the `public/` folder via Cloudflare Pages).
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `index.html` | The tool itself — open this in a browser |
-| `data.js` | Generated contact data that `index.html` reads |
+| `public/index.html` | The tool itself — this is what's deployed and what you'd open in a browser |
+| `public/data.js` | Generated contact data that `index.html` reads |
 | `build-data.js` | Node script that regenerates `data.js` from live sources |
 | `package.json` | Dependencies needed to run `build-data.js` (`axios`, `cheerio`) |
