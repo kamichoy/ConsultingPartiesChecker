@@ -4,7 +4,8 @@ A simple tool for looking up, by county, the contacts you need for historic pres
 
 - The Indiana Landmarks regional office (and staff) for that county (https://www.indianalandmarks.org/news/in-your-area/)
 - Local preservation and historical organizations (https://www.indianalandmarks.org/resources/indiana-preservation-directory/ & https://indianahistory.org/across-indiana/hometown-resources/find-who-you-need-by-county/)
-- Tribal contacts on file for that county (https://egis.hud.gov/tdat/), cross-checked against each tribe's THPO in the NATHPO directory (https://members.nathpo.org/thpodirectory)
+- Tribal contacts on file for that county (https://egis.hud.gov/tdat/)
+- Each tribe's Tribal Historic Preservation Officer (THPO), shown as a cross-check against the TDAT contacts (https://members.nathpo.org/thpodirectory)
 
 ## Quick start (just want to use it)
 
@@ -29,8 +30,7 @@ needed if you want to run it locally or refresh the data.
 
 The contact data in `data.js` is pulled from live sources (Indiana Landmarks,
 Indiana Historical Society, the HUD Tribal Directory Assistance Tool, and the
-NATHPO THPO directory) and
-can go stale. To rebuild it:
+NATHPO THPO Directory) and can go stale. To rebuild it:
 
 1. Install [Node.js](https://nodejs.org/) if you don't already have it.
 2. In the project folder, install dependencies:
