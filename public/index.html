@@ -39,6 +39,18 @@
         </div>
 
         <div id="loadError" class="hidden bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm"></div>
+
+        <footer class="mt-10 pt-4 border-t border-[#d3bd90] text-xs text-[#8a7458] leading-relaxed space-y-2">
+            <p>Data sources:</p>
+            <ul class="list-disc pl-5 space-y-1">
+                <li>Indiana Landmarks regional offices and staff: <a href="https://www.indianalandmarks.org/news/in-your-area/" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">Indiana Landmarks, In Your Area</a></li>
+                <li>Local preservation and historical organizations: <a href="https://www.indianalandmarks.org/resources/indiana-preservation-directory/" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">Indiana Preservation Directory</a> and <a href="https://indianahistory.org/across-indiana/hometown-resources/find-who-you-need-by-county/" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">Indiana Historical Society, Find Who You Need by County</a></li>
+                <li>Tribal contacts: <a href="https://egis.hud.gov/tdat/" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">HUD Tribal Directory Assistance Tool (TDAT)</a></li>
+                <li>Tribal Historic Preservation Officers: <a href="https://members.nathpo.org/thpodirectory" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">NATHPO THPO Directory</a></li>
+            </ul>
+            <p><span class="font-semibold">Disclaimer:</span> This is a personal project by Kami Cai, made for convenience only. It is not an official tool and is not affiliated with or endorsed by any of the organizations above. Contact information is collected from their public websites and may be out of date or incomplete. Always confirm details with the original source before starting consultation.</p>
+            <p>Data is refreshed from these sources periodically, not on a fixed schedule.<span id="lastUpdated"></span></p>
+        </footer>
     </div>
 
     <script src="data.js"></script>
@@ -160,6 +172,13 @@
                 errorBox.classList.remove('hidden');
                 errorBox.innerText = 'data.js failed to load. Make sure data.js is in the same folder as index.html, then reload this page.';
                 return;
+            }
+
+            if (typeof DATA_UPDATED !== 'undefined') {
+                // Parse as a local date; new Date('YYYY-MM-DD') is UTC and can show the previous day.
+                const [y, m, d] = DATA_UPDATED.split('-').map(Number);
+                const text = new Date(y, m - 1, d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                document.getElementById('lastUpdated').innerText = ` Last updated: ${text}.`;
             }
 
             const select = document.getElementById('countySelect');

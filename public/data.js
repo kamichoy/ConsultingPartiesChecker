@@ -18255,3 +18255,5 @@ const NATHPO_THPOS = {
     }
   }
 };
+// Local date of this build, shown as "Last updated" on the page.
+const DATA_UPDATED = "2026-09-22";
