@@ -4,7 +4,7 @@ A simple tool for looking up, by county, the contacts you need for historic pres
 
 - The Indiana Landmarks regional office (and staff) for that county (https://www.indianalandmarks.org/news/in-your-area/)
 - Local preservation and historical organizations (https://www.indianalandmarks.org/resources/indiana-preservation-directory/ & https://indianahistory.org/across-indiana/hometown-resources/find-who-you-need-by-county/)
-- Tribal contacts on file for that county (https://egis.hud.gov/tdat/)
+- Tribal contacts on file for that county (https://egis.hud.gov/tdat/), cross-checked against each tribe's THPO in the NATHPO directory (https://members.nathpo.org/thpodirectory)
 
 ## Quick start (just want to use it)
 
@@ -28,7 +28,8 @@ needed if you want to run it locally or refresh the data.
 ## Updating the data (optional)
 
 The contact data in `data.js` is pulled from live sources (Indiana Landmarks,
-Indiana Historical Society, and the HUD Tribal Directory Assistance Tool) and
+Indiana Historical Society, the HUD Tribal Directory Assistance Tool, and the
+NATHPO THPO directory) and
 can go stale. To rebuild it:
 
 1. Install [Node.js](https://nodejs.org/) if you don't already have it.
@@ -41,7 +42,13 @@ can go stale. To rebuild it:
    node build-data.js
    ```
    This re-scrapes all 92 counties and overwrites `data.js`. It takes a few
-   minutes and prints progress per county.
+   minutes and prints progress per county. If any request still fails after
+   retries, `data.js` is left untouched; just run it again later.
+
+   NATHPO lists tribes under different names than TDAT, so the mapping lives
+   in `NATHPO_PAGES` at the top of `build-data.js`. If the build prints
+   `WARNING: "<tribe>" is new in TDAT`, add that tribe's NATHPO page there
+   (or `null` if it has no THPO).
 4. Refresh `public/index.html` in your browser to see the updated data.
 
 `public/data.js` is generated — don't hand-edit it, since the next rebuild

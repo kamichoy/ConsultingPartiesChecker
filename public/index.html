@@ -29,6 +29,11 @@
             </section>
             <section class="bg-[#fffcf5] rounded-xl border border-[#d3bd90] shadow-sm overflow-hidden">
                 <h3 class="px-4 py-2.5 bg-[#e9dcbd] border-b border-[#d3bd90] font-semibold text-[#4a3222] text-sm font-serif">Tribal Contacts</h3>
+                <p class="px-4 py-2.5 border-b border-[#e6d9bd] text-xs text-[#8a7458] leading-relaxed">
+                    Data from HUD's <a href="https://egis.hud.gov/tdat/" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">Tribal Directory Assistance Tool (TDAT)</a>.
+                    TDAT was developed by the Office of Environment and Energy (OEE) to help users identify tribes that may have an interest in the location of a HUD-assisted project, and provide tribal contact information to assist users with initiating Section 106 consultation under the National Historic Preservation Act (54 U.S.C. § 300101 et seq.).
+                    <span class="block mt-1.5">Where a tribe has a Tribal Historic Preservation Officer, their contact from the <a href="https://members.nathpo.org/thpodirectory" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">NATHPO THPO Directory</a> is shown as a cross-check.</span>
+                </p>
                 <div id="tribeContent"></div>
             </section>
         </div>
@@ -57,7 +62,7 @@
             return `<a href="mailto:${email}" class="text-[#8a5a2b] hover:underline">${email}</a>`;
         }
 
-        const SOURCE_LABELS = { landmarks: 'Indiana Landmarks', ihs: 'Indiana Historical Society' };
+        const SOURCE_LABELS = { landmarks: 'Indiana Landmarks', ihs: 'Indiana Historical Society', nathpo: 'NATHPO' };
 
         function sourceBadges(sources) {
             if (!sources || sources.length === 0) return '';
@@ -92,16 +97,61 @@
             `)).join('');
         }
 
+        // Loose person-name match so "Dr. Andrea Hunter PhD" (NATHPO) matches
+        // "Andrea A. Hunter" (TDAT): first and last word must both appear.
+        function samePerson(a, b) {
+            const words = s => s.toLowerCase().replace(/[^a-z\s-]/g, ' ').split(/\s+/)
+                .filter(w => w && !['dr', 'phd', 'jr', 'sr', 'ii', 'iii'].includes(w));
+            const wa = words(a), wb = new Set(words(b));
+            return wa.length > 0 && wb.has(wa[0]) && wb.has(wa[wa.length - 1]);
+        }
+
+        function renderNathpo(n, tdatContacts) {
+            const badge = sourceBadges(['nathpo']).replace('mt-2', '');
+            const known = name => tdatContacts.some(c => samePerson(name, c));
+            const extra = n.additional && !samePerson(n.additional.name, n.name) ? n.additional : null;
+            // The listing's main phone often belongs to the "Additional Info"
+            // person, so only attach it to the primary when they're the same.
+            const primaryDetails = extra ? {} : (n.additional || { phone: n.phone });
+            const unmatched = [n.name, extra && extra.name].filter(x => x && !known(x));
+            return `
+                <div class="mt-3 pt-2 border-t border-dashed border-[#e6d9bd]">
+                    <div class="flex items-center gap-2 mb-1"><span class="text-xs uppercase tracking-wide text-[#a8916c]">THPO per NATHPO</span>${badge}</div>
+                    <div>${n.name}${n.title ? `, ${n.title}` : ''}</div>
+                    ${primaryDetails.phone ? `<div>${primaryDetails.phone}</div>` : ''}
+                    ${primaryDetails.email ? `<div>${mailtoLink(primaryDetails.email)}</div>` : ''}
+                    ${extra ? `<div class="mt-1">Also listed: ${extra.name}${extra.phone ? ` · ${extra.phone}` : ''}${extra.email ? ` · ${mailtoLink(extra.email)}` : ''}</div>` : ''}
+                    ${unmatched.length ? `<div class="mt-1 text-xs text-[#9a5b12] bg-[#fbecd0] border border-[#ecc98a] rounded px-2 py-1">${unmatched.join(' and ')} ${unmatched.length > 1 ? 'are' : 'is'} not listed in TDAT for this tribe. Verify which contact is current.</div>` : ''}
+                    <div class="mt-1">${linkify(n.url, 'View NATHPO listing')}</div>
+                </div>`;
+        }
+
+        // TDAT has one row per contact person, so a tribe usually appears
+        // several times (chief, THPO, ...); show one card per tribe instead.
         function renderTribes(tribes) {
             if (!tribes || tribes.length === 0) return emptyState('No tribal contacts on file for this county in the HUD Tribal Directory Assistance Tool.');
-            return tribes.map(t => item(`
-                <div class="font-semibold text-[#4a3222] mb-1">${t.name}</div>
-                ${t.contact ? `<div>${t.contact}${t.title ? `, ${t.title}` : ''}</div>` : ''}
-                ${t.address ? `<div>${t.address}</div>` : ''}
-                ${t.phone ? `<div class="mt-1">${t.phone}</div>` : ''}
-                ${t.email ? `<div>${mailtoLink(t.email)}</div>` : ''}
-                ${t.website ? `<div>${linkify(t.website)}</div>` : ''}
-            `)).join('');
+            const byTribe = new Map();
+            for (const t of tribes) {
+                if (!byTribe.has(t.name)) byTribe.set(t.name, []);
+                byTribe.get(t.name).push(t);
+            }
+            const nathpo = typeof NATHPO_THPOS === 'undefined' ? {} : NATHPO_THPOS;
+            return [...byTribe.keys()].sort().map(name => {
+                const rows = byTribe.get(name);
+                const website = (rows.find(t => t.website) || {}).website;
+                return item(`
+                    <div class="font-semibold text-[#4a3222] mb-1">${name}</div>
+                    ${rows.map(t => `
+                        <div class="mb-2">
+                            ${t.contact ? `<div>${t.contact}${t.title ? `, ${t.title}` : ''}</div>` : ''}
+                            ${t.address ? `<div>${t.address}</div>` : ''}
+                            ${t.phone ? `<div>${t.phone}</div>` : ''}
+                            ${t.email ? `<div>${mailtoLink(t.email)}</div>` : ''}
+                        </div>`).join('')}
+                    ${website ? `<div>${linkify(website)}</div>` : ''}
+                    ${nathpo[name] ? renderNathpo(nathpo[name], rows.map(t => t.contact)) : ''}
+                `);
+            }).join('');
         }
 
         function init() {

@@ -3,6 +3,7 @@
 //  - Indiana Landmarks county pages                     -> regional/field office
 //  - Indiana Historical Society "find who you need"     -> historian + historical/genealogical orgs
 //  - HUD eGIS Tribal Directory Assistance Tool (TDAT)    -> tribal contacts
+//  - NATHPO THPO directory                               -> THPO contact per tribe (cross-check)
 // Output: public/data.js (a plain JS file defining CONSULTING_PARTIES_DATA, loaded via
 // <script src="data.js">) so index.html works from a double-clicked file://
 // URL with no local server and no fetch()/CORS issues.
@@ -40,6 +41,26 @@ const COUNTIES = [
 ];
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// indianalandmarks.org starts answering 503 after a few dozen rapid requests,
+// so transient 429/5xx responses and network errors are retried with a
+// growing backoff instead of silently leaving that county's data empty.
+async function withRetry(fn, attempts = 6) {
+    for (let i = 1; ; i++) {
+        try {
+            return await fn();
+        } catch (e) {
+            const status = e.response && e.response.status;
+            const retryable = !status || status === 429 || status >= 500;
+            if (!retryable || i >= attempts) throw e;
+            const wait = 5000 * 2 ** (i - 1);
+            process.stdout.write(`[${status || e.code} - retrying in ${wait / 1000}s] `);
+            await sleep(wait);
+        }
+    }
+}
+const httpGet = (url, cfg) => withRetry(() => axios.get(url, cfg));
+const httpPost = (url, body, cfg) => withRetry(() => axios.post(url, body, cfg));
 
 function slugify(name) {
     return name.toLowerCase().replace(/[.']/g, '').trim().replace(/\s+/g, '-');
@@ -84,7 +105,7 @@ function chunkToOrg(chunkHtml) {
 }
 
 async function getNonce() {
-    const { data } = await axios.get('https://www.indianalandmarks.org/resources/indiana-preservation-directory/', UA);
+    const { data } = await httpGet('https://www.indianalandmarks.org/resources/indiana-preservation-directory/', UA);
     const m = data.match(/preservation_afp_nonce":"([a-f0-9]+)"/);
     if (!m) throw new Error('Could not find preservation_afp_nonce on directory page');
     return m[1];
@@ -96,7 +117,7 @@ async function getOrgs(slug, nonce) {
         preservation_afp_nonce: nonce,
         location: `${slug}-county`
     });
-    const { data } = await axios.post('https://www.indianalandmarks.org/wp-admin/admin-ajax.php', body, UA);
+    const { data } = await httpPost('https://www.indianalandmarks.org/wp-admin/admin-ajax.php', body, UA);
     const html = data && data.response && data.response[0];
     if (!html || /no directory information/i.test(html)) return [];
 
@@ -111,7 +132,7 @@ async function getOrgs(slug, nonce) {
 // indianahistory.org lists every county on a single static page (an accordion),
 // so this is one request instead of 92.
 async function getHistoricalSocietyOrgs() {
-    const { data } = await axios.get(
+    const { data } = await httpGet(
         'https://indianahistory.org/across-indiana/hometown-resources/find-who-you-need-by-county/',
         UA
     );
@@ -196,7 +217,7 @@ function mergeOrgLists(landmarksOrgs, ihsOrgs) {
 }
 
 async function getOffice(slug) {
-    const { data } = await axios.get(`https://www.indianalandmarks.org/county/${slug}-county/`, UA);
+    const { data } = await httpGet(`https://www.indianalandmarks.org/county/${slug}-county/`, UA);
     const $ = cheerio.load(data);
     const box = $('.regional-office-content').first();
     if (!box.length) return null;
@@ -223,7 +244,7 @@ async function getStaff(url) {
     if (!url) return [];
     if (staffCache.has(url)) return staffCache.get(url);
     const staff = await (async () => {
-        const { data } = await axios.get(url, UA);
+        const { data } = await httpGet(url, UA);
         const $ = cheerio.load(data);
         const box = $('.office-staff-content').first();
         if (!box.length) return [];
@@ -237,7 +258,7 @@ async function getStaff(url) {
 
 async function getTribes() {
     const url = "https://egis.hud.gov/arcgis/rest/services/tdat/TDAT/MapServer/3/query?where=STATE_NAME%3D%27Indiana%27&outFields=TRIBAL_NAME,URL,FIRST_NAME,LAST_NAME,TITLE,STREET_ADDRESS,CITY,STATE,ZIP_CODE,WORK_PHONE,EMAIL,COUNTY_NAME&f=json";
-    const { data } = await axios.get(url);
+    const { data } = await httpGet(url);
     if (data.exceededTransferLimit) throw new Error('HUD TDAT response was paginated; need to page through results');
     const byCounty = {};
     for (const f of data.features) {
@@ -257,6 +278,56 @@ async function getTribes() {
     return byCounty;
 }
 
+// NATHPO's THPO directory (members.nathpo.org/thpodirectory) has no county
+// data and names tribes differently from TDAT (e.g. "Gun Lake Tribe" vs
+// "Match-e-be-nash-she-wish Band..."), so each TDAT tribe is mapped by hand to
+// its NATHPO detail page. null = tribe has no THPO listed in NATHPO. When
+// TDAT adds a tribe for Indiana, the build warns so it can be added here.
+const NATHPO_PAGES = {
+    'Citizen Potawatomi Nation, Oklahoma': 'citizen-potawatomi-nation-1658156',
+    'Delaware Nation, Oklahoma': 'delaware-nation-2561679',
+    'Delaware Tribe of Indians': 'delaware-tribe-of-indians-1662392',
+    'Eastern Shawnee Tribe of Oklahoma': 'eastern-shawnee-tribe-1662487',
+    'Forest County Potawatomi Community, Wisconsin': 'forest-county-potawatomi-community-1602634',
+    'Hannahville Indian Community, Michigan': null,
+    'Kickapoo Tribe of Indians of the Kickapoo Reservation in Kansas': null,
+    'Little Traverse Bay Bands of Odawa Indians, Michigan': 'little-traverse-bay-bands-of-odawa-indians-1657458',
+    'Match-e-be-nash-she-wish Band of Pottawatomi Indians of Michigan': 'gun-lake-tribe-match-e-be-nash-she-wish-band-of-pottawatomi-indians-1602630',
+    'Miami Tribe of Oklahoma': 'miami-tribe-of-oklahoma-1602618',
+    'Osage Nation': 'osage-nation-1602608',
+    'Ottawa Tribe of Oklahoma': 'ottawa-tribe-of-oklahoma-1663617',
+    'Peoria Tribe of Indians of Oklahoma': 'peoria-tribe-of-indians-of-oklahoma-3751193',
+    'Pokagon Band of Potawatomi Indians, Michigan and Indiana': 'pokagon-band-of-potawatomi-indians-1657468',
+    'Prairie Band Potawatomi Nation': 'prairie-band-potawatomi-nation-2916081',
+    'Quapaw Nation': 'quapaw-nation-1602595',
+    'Seneca-Cayuga Nation': 'seneca-cayuga-tribe-of-oklahoma-1670473',
+    'Shawnee Tribe': 'shawnee-tribe-1602586',
+    'Wyandotte Nation': 'wyandotte-nation-1670493'
+};
+
+// A detail page has a "Primary" contact (name + title) and a separate
+// "Additional Info" block (name/email/phone) that is not always the same person.
+async function getNathpo(page) {
+    const url = `https://members.nathpo.org/thpodirectory/Details/${page}`;
+    const { data } = await httpGet(url, UA);
+    const $ = cheerio.load(data);
+    const clean = (s) => s.replace(/\s+/g, ' ').trim();
+    const info = {};
+    $('.gz-details-custom p').each((_, p) => {
+        const m = clean($(p).text()).match(/^(\w+)\s*:\s*(.*)$/);
+        if (m) info[m[1].toLowerCase()] = m[2];
+    });
+    const primaryName = clean($('.gz-member-repname').first().text());
+    if (!primaryName && !info.name) throw new Error(`no contact found on NATHPO page ${page}`);
+    return {
+        url,
+        name: primaryName || info.name,
+        title: clean($('.gz-member-reptitle').first().text()),
+        phone: clean($('.gz-details-phone').first().text()),
+        additional: info.name ? { name: info.name, email: info.email || '', phone: info.phone || '' } : null
+    };
+}
+
 (async () => {
     console.log('Fetching HUD tribal contact data for Indiana...');
     const tribes = await getTribes();
@@ -265,6 +336,26 @@ async function getTribes() {
     console.log('Fetching Indiana Historical Society county listings...');
     const ihsOrgs = await getHistoricalSocietyOrgs();
     console.log(`  -> ${Object.values(ihsOrgs).reduce((n, a) => n + a.length, 0)} listings across ${Object.keys(ihsOrgs).length} counties`);
+
+    const failures = [];
+    console.log('Fetching NATHPO THPO directory entries...');
+    const nathpo = {};
+    const tribeNames = [...new Set(Object.values(tribes).flat().map(t => t.name))].sort();
+    for (const tribe of tribeNames) {
+        if (!(tribe in NATHPO_PAGES)) {
+            console.log(`  WARNING: "${tribe}" is new in TDAT and not in NATHPO_PAGES; add it to build-data.js`);
+            continue;
+        }
+        if (!NATHPO_PAGES[tribe]) continue;
+        try {
+            nathpo[tribe] = await getNathpo(NATHPO_PAGES[tribe]);
+        } catch (e) {
+            failures.push(`NATHPO ${tribe}`);
+            console.log(`  NATHPO failed for ${tribe}: ${e.message}`);
+        }
+        await sleep(250);
+    }
+    console.log(`  -> ${Object.keys(nathpo).length} of ${tribeNames.length} tribes have a NATHPO THPO entry`);
 
     console.log('Fetching preservation directory nonce...');
     const nonce = await getNonce();
@@ -277,6 +368,7 @@ async function getTribes() {
         try {
             landmarksOrgs = await getOrgs(slug, nonce);
         } catch (e) {
+            failures.push(`${slug} orgs`);
             console.log(`\n  orgs failed for ${slug}: ${e.message}`);
         }
         await sleep(250);
@@ -288,6 +380,7 @@ async function getTribes() {
             }
             if (office) delete office.staffUrl;
         } catch (e) {
+            failures.push(`${slug} office`);
             console.log(`\n  office failed for ${slug}: ${e.message}`);
         }
         await sleep(250);
@@ -305,7 +398,15 @@ async function getTribes() {
     }
     console.log(`\n${mergedCount} organizations were listed on both sites and merged into one entry.`);
 
-    const out = `// Auto-generated by build-data.js. Do not edit by hand — re-run the script instead.\nconst CONSULTING_PARTIES_DATA = ${JSON.stringify(result, null, 2)};\n`;
+    // Writing a partial scrape would silently blank out those counties on the
+    // live site, so keep the previous data.js instead.
+    if (failures.length) {
+        console.error(`\n${failures.length} fetch(es) failed (${failures.join(', ')}); public/data.js was NOT overwritten. Re-run later.`);
+        process.exit(1);
+    }
+
+    const out = `// Auto-generated by build-data.js. Do not edit by hand — re-run the script instead.\nconst CONSULTING_PARTIES_DATA = ${JSON.stringify(result, null, 2)};\n` +
+        `// THPO contacts from NATHPO, keyed by TDAT tribe name.\nconst NATHPO_THPOS = ${JSON.stringify(nathpo, null, 2)};\n`;
     fs.writeFileSync('public/data.js', out);
     console.log('\nWrote public/data.js');
 })().catch(e => {
