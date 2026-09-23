@@ -12,7 +12,7 @@
 <body class="p-8">
     <div class="max-w-3xl mx-auto">
         <h1 class="text-2xl font-bold mb-1 text-[#4a3222] font-serif">Indiana Consulting Parties Finder</h1>
-        <p class="text-sm text-[#8a7458] mb-6">Select a county to see its Indiana Landmarks regional office, local preservation organizations, and tribal contacts.</p>
+        <p class="text-sm text-[#6b5842] mb-6">Select a county to see its Indiana Landmarks regional office, local preservation organizations, and tribal contacts.</p>
 
         <select id="countySelect" class="w-full p-3 border border-[#d3bd90] rounded-lg shadow-sm mb-6 bg-[#fffcf5] text-[#4a3222]">
             <option value="">-- Select a County --</option>
@@ -29,7 +29,7 @@
             </section>
             <section class="bg-[#fffcf5] rounded-xl border border-[#d3bd90] shadow-sm overflow-hidden">
                 <h3 class="px-4 py-2.5 bg-[#e9dcbd] border-b border-[#d3bd90] font-semibold text-[#4a3222] text-sm font-serif">Tribal Contacts</h3>
-                <p class="px-4 py-2.5 border-b border-[#e6d9bd] text-xs text-[#8a7458] leading-relaxed">
+                <p class="px-4 py-2.5 border-b border-[#e6d9bd] text-xs text-[#6b5842] leading-relaxed">
                     Data from HUD's <a href="https://egis.hud.gov/tdat/" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">Tribal Directory Assistance Tool (TDAT)</a>.
                     TDAT was developed by the Office of Environment and Energy (OEE) to help users identify tribes that may have an interest in the location of a HUD-assisted project, and provide tribal contact information to assist users with initiating Section 106 consultation under the National Historic Preservation Act (54 U.S.C. § 300101 et seq.).
                     <span class="block mt-1.5">Where a tribe has a Tribal Historic Preservation Officer, their contact from the <a href="https://members.nathpo.org/thpodirectory" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">NATHPO THPO Directory</a> is shown as a cross-check.</span>
@@ -40,7 +40,7 @@
 
         <div id="loadError" class="hidden bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm"></div>
 
-        <footer class="mt-10 pt-4 border-t border-[#d3bd90] text-xs text-[#8a7458] leading-relaxed space-y-2">
+        <footer class="mt-10 pt-4 border-t border-[#d3bd90] text-xs text-[#6b5842] leading-relaxed space-y-2">
             <p>Data sources:</p>
             <ul class="list-disc pl-5 space-y-1">
                 <li>Indiana Landmarks regional offices and staff: <a href="https://www.indianalandmarks.org/news/in-your-area/" target="_blank" rel="noopener" class="text-[#8a5a2b] hover:underline">Indiana Landmarks, In Your Area</a></li>
@@ -61,7 +61,7 @@
         }
 
         function emptyState(text) {
-            return item(`<span class="text-[#a8967a] italic">${text}</span>`);
+            return item(`<span class="text-[#6b5842] italic">${text}</span>`);
         }
 
         function linkify(url, label) {
@@ -79,7 +79,7 @@
 
         function sourceBadges(sources) {
             if (!sources || sources.length === 0) return '';
-            const badges = sources.map(s => `<span class="text-[10px] uppercase tracking-wide text-[#a8916c] border border-[#d3bd90] rounded px-1.5 py-0.5">${SOURCE_LABELS[s] || s}</span>`).join('');
+            const badges = sources.map(s => `<span class="text-[10px] uppercase tracking-wide text-[#6b5842] border border-[#d3bd90] rounded px-1.5 py-0.5">${SOURCE_LABELS[s] || s}</span>`).join('');
             return `<div class="flex flex-wrap gap-1 mt-2">${badges}</div>`;
         }
 
@@ -93,7 +93,7 @@
                 ${office.phone ? `<div class="mt-1">${office.phone}</div>` : ''}
                 ${office.email ? `<div>${mailtoLink(office.email)}</div>` : ''}
                 ${staff.length ? `
-                <div class="mt-3 pt-2 border-t border-[#e6d9bd] text-xs uppercase tracking-wide text-[#a8916c] mb-1">Staff</div>
+                <div class="mt-3 pt-2 border-t border-[#e6d9bd] text-xs uppercase tracking-wide text-[#6b5842] mb-1">Staff</div>
                 ${staff.map(s => `<div class="mb-1">${s.name}${s.email ? `<br>${mailtoLink(s.email)}` : ''}</div>`).join('')}
                 ` : ''}
             `);
@@ -129,7 +129,7 @@
             const unmatched = [n.name, extra && extra.name].filter(x => x && !known(x));
             return `
                 <div class="mt-3 pt-2 border-t border-dashed border-[#e6d9bd]">
-                    <div class="flex items-center gap-2 mb-1"><span class="text-xs uppercase tracking-wide text-[#a8916c]">THPO per NATHPO</span>${badge}</div>
+                    <div class="flex items-center gap-2 mb-1"><span class="text-xs uppercase tracking-wide text-[#6b5842]">THPO per NATHPO</span>${badge}</div>
                     <div>${n.name}${n.title ? `, ${n.title}` : ''}</div>
                     ${primaryDetails.phone ? `<div>${primaryDetails.phone}</div>` : ''}
                     ${primaryDetails.email ? `<div>${mailtoLink(primaryDetails.email)}</div>` : ''}
