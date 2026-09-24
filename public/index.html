@@ -139,7 +139,7 @@
                 <div class="mt-3 pt-2 border-t border-[#e6d9bd] text-xs uppercase tracking-wide text-[#6b5842] mb-1">Staff</div>
                 ${staff.map(s => `<div class="mb-1">${withCopy(
                     `${s.name}${s.email ? `<br>${mailtoLink(s.email)}` : ''}`,
-                    copyButton(s.name, `Indiana Landmarks ${office.office}`, s.email)
+                    copyButton(s.name.split(','[0].trim()), `Indiana Landmarks ${office.office}`, s.email)
                 )}</div>`).join('')}
                 ` : ''}
             `);
