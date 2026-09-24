@@ -154,13 +154,13 @@
         const TITLED_NAME = new RegExp(`^(${PERSON}),\\s*\\S`);
         const BARE_NAME = new RegExp(`^${PERSON}$`);
         const NOT_PERSON = /\b(library|museum|county|center|society|department|township|district|foundation|inc|street|st|avenue|ave|road|drive|box|mailing|heritage|historical|genealogy)\b/i;
-        // Returns the whole line (title included) once it's judged to be a person.
+        // Returns just the name, title dropped, once it's judged to be a person.
         function orgContactName(org) {
             const first = (org.lines[0] || '').trim();
             const m = first.match(TITLED_NAME);
             const name = m ? m[1] : (BARE_NAME.test(first) ? first : '');
             if (!name || NOT_PERSON.test(name)) return '';
-            return first;
+            return name;
         }
 
         // Street / PO Box lines plus the "City, IN 46xxx" line, kept as separate
@@ -206,7 +206,7 @@
                         <div>${n.name}${n.title ? `, ${n.title}` : ''}</div>
                         ${primaryDetails.phone ? `<div>${primaryDetails.phone}</div>` : ''}
                         ${primaryDetails.email ? `<div>${mailtoLink(primaryDetails.email)}</div>` : ''}`,
-                        copyButton(`${n.name}${n.title ? `, ${n.title}` : ''}`, tribe, primaryDetails.email))}
+                        copyButton(n.name, tribe, primaryDetails.email))}
                     ${extra ? `<div class="mt-1">${withCopy(
                         `Also listed: ${extra.name}${extra.phone ? ` · ${extra.phone}` : ''}${extra.email ? ` · ${mailtoLink(extra.email)}` : ''}`,
                         copyButton(extra.name, tribe, extra.email))}</div>` : ''}
@@ -236,7 +236,7 @@
                             ${t.address ? `<div>${t.address}</div>` : ''}
                             ${t.phone ? `<div>${t.phone}</div>` : ''}
                             ${t.email ? `<div>${mailtoLink(t.email)}</div>` : ''}`,
-                            copyButton(t.contact ? `${t.contact}${t.title ? `, ${t.title}` : ''}` : '', name, t.email, t.address))}
+                            copyButton(t.contact || '', name, t.email, t.address))}
                         </div>`).join('')}
                     ${website ? `<div>${linkify(website)}</div>` : ''}
                     ${nathpo[name] ? renderNathpo(nathpo[name], name, rows.map(t => t.contact)) : ''}
